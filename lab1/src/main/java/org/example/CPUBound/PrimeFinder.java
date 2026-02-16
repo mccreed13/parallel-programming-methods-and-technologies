@@ -1,4 +1,4 @@
-package org.example.CPU_bound;
+package org.example.CPUBound;
 
 import java.util.Arrays;
 
