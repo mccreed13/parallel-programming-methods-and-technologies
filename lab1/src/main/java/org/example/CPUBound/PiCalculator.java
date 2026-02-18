@@ -7,13 +7,13 @@ import java.util.function.BiPredicate;
 
 public class PiCalculator {
     public static int insidePointsGlobal = 0;
+    private final static SecureRandom random = new SecureRandom();
 
     public static double calculate(int totalPoints) {
-        int insidePoints = getInsidePoints(totalPoints);
-        return 4.0 * insidePoints / totalPoints;
+        return calculate(totalPoints, 1);
     }
 
-    public static double calculateInParallel(int totalPoints, int numberOfThreads) {
+    public static double calculate(int totalPoints, int numberOfThreads) {
         int totalPointsForThread = totalPoints / numberOfThreads;
         System.out.println("Total points for thread: " + totalPointsForThread);
         List<Thread> threads = new ArrayList<>();
@@ -40,7 +40,6 @@ public class PiCalculator {
     public static int getInsidePoints(int totalPoints) {
         BiPredicate<Double, Double> isInCircle = (x, y) -> (x * x + y * y) <= 1;
         int insidePoints = 0;
-        SecureRandom random = new SecureRandom();
         for (int i = 0; i < totalPoints; i++) {
             if (isInCircle.test(random.nextDouble(), random.nextDouble())) {
                 insidePoints++;
