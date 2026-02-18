@@ -9,12 +9,10 @@ public class Main {
     public static void main(String[] args) {
         long startTime = System.currentTimeMillis();
         System.out.println(PiCalculator.calculate(TOTAL_POINTS, NUMBER_OF_THREADS));
-        long endTime = System.currentTimeMillis();
-        System.out.println("Parallel time = " + (endTime-startTime));
+        System.out.println("Час паралельного виконання: " + (System.currentTimeMillis() - startTime) + " мс");
 
         startTime = System.currentTimeMillis();
         System.out.println(PiCalculator.calculate(TOTAL_POINTS));
-        endTime = System.currentTimeMillis();
-        System.out.println("Sequence time = " + (endTime-startTime));
+        System.out.println("Час послідовного виконання: " + (System.currentTimeMillis() - startTime) + " мс");
     }
 }
