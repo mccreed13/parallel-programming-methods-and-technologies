@@ -1,62 +1,84 @@
 package org.example.CPUBound;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.*;
 
 public class PrimeFinder {
-    static boolean[] sieveOfEratosthenes(int n) {
-        boolean[] prime = new boolean[n + 1];
-        Arrays.fill(prime, true);
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        int start = 1;
+        int end = 10_000_000;
+//        int threads = Runtime.getRuntime().availableProcessors();
+        int threads = 12;
+        System.out.println("Кількість потоків " + threads);
 
-        // Mark 0 and 1 as non-prime
-        prime[0] = false;
-        prime[1] = false;
+        long startTime = System.currentTimeMillis();
+        List<Integer> primes = findPrimesInRangeConcurrent(start, end, threads);
+        Collections.sort(primes);
+        long endTime = System.currentTimeMillis();
 
-        // Loop through numbers from 2 to sqrt(n)
-        // to mark their multiples as non-prime
-        for (int p = 2; p * p <= n; p++) {
-
-            // If prime[p] is still true, it means 'p' is
-            // prime
-            if (prime[p]) {
-
-                // Mark all multiples of p greater
-                // than or equal to p^2 as non-prime
-                // Numbers less than p^2 would
-                // have already been marked as non-prime
-                for (int i = p * p; i <= n; i += p)
-                    prime[i] = false;
-            }
-        }
-
-        return prime;
+        System.out.println("Знайдено " + primes.size() + " простих чисел в проміжку [" + start + ", " + end + "]");
+        System.out.println("Час виконання: " + (endTime - startTime) + " мс");
     }
 
-    static int[] primeRange(int m, int n) {
-
-        // Get the boolean array representing prime numbers
-        // up to n
-        boolean[] isPrime = sieveOfEratosthenes(n);
-
-        // Count the number of primes in the range [m, n]
-        int count = 0;
-        for (int i = m; i <= n; i++) {
-            if (isPrime[i])
-                count++;
-        }
-
-        // Create an array to store the prime numbers
-        int[] ans = new int[count];
-        int index = 0;
-
-        // Loop through the range [m, n] and collect all
-        // prime numbers
-        for (int i = m; i <= n; i++) {
-            if (isPrime[i]) {
-                ans[index++] = i;
-            }
-        }
-
-        return ans;
+    public static boolean isPrime(int n)
+    {
+        if (n <= 1)
+            return false;
+        if (n == 2 || n == 3)
+            return true;
+        if (n % 2 == 0 || n % 3 == 0)
+            return false;
+        for (int i = 5; i * i <= n; i = i + 6)
+            if (n % i == 0 || n % (i + 2) == 0)
+                return false;
+        return true;
     }
 
+
+    // A Callable task to find primes in a specific sub-range
+    static class PrimeFinderTask implements Callable<List<Integer>> {
+        private final int start;
+        private final int end;
+
+        public PrimeFinderTask(int start, int end) {
+            this.start = start;
+            this.end = end;
+        }
+
+        @Override
+        public List<Integer> call() {
+            List<Integer> primes = new ArrayList<>();
+            for (int i = start; i <= end; i++) {
+                if (isPrime(i)) {
+                    primes.add(i);
+                }
+            }
+            return primes;
+        }
+    }
+
+    public static List<Integer> findPrimesInRangeConcurrent(int start, int end, int numThreads) throws InterruptedException, ExecutionException {
+        List<Integer> allPrimes = new ArrayList<>();
+        try(ExecutorService executor = Executors.newFixedThreadPool(numThreads)){
+            List<Future<List<Integer>>> futures = new ArrayList<>();
+            int rangeSize = (end - start + 1);
+            int segmentSize = rangeSize / numThreads;
+
+            for (int i = 0; i < numThreads; i++) {
+                int segmentStart = start + i * segmentSize;
+                int segmentEnd = (i == numThreads - 1) ? end : (segmentStart + segmentSize - 1);
+                PrimeFinderTask task = new PrimeFinderTask(segmentStart, segmentEnd);
+                futures.add(executor.submit(task));
+            }
+
+            for (Future<List<Integer>> future : futures) {
+                allPrimes.addAll(future.get());
+            }
+
+            executor.shutdown();
+        }
+        return allPrimes;
+    }
 }
