@@ -1,8 +1,8 @@
 package org.example.CPUBound;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.function.BiPredicate;
 
 public class PiCalculator {
@@ -40,7 +40,7 @@ public class PiCalculator {
     public static int getInsidePoints(int totalPoints) {
         BiPredicate<Double, Double> isInCircle = (x, y) -> (x * x + y * y) <= 1;
         int insidePoints = 0;
-        Random random = new Random();
+        SecureRandom random = new SecureRandom();
         for (int i = 0; i < totalPoints; i++) {
             if (isInCircle.test(random.nextDouble(), random.nextDouble())) {
                 insidePoints++;
