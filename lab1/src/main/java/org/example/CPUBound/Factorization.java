@@ -9,26 +9,38 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Factorization {
-    private static final ExecutorService executor = Executors.newFixedThreadPool(12);
-    private static final List<BigInteger> primeFactors = Collections.synchronizedList(new ArrayList<>());
+    private static ExecutorService executor = Executors.newFixedThreadPool(12);
+    private static List<BigInteger> primeFactors = Collections.synchronizedList(new ArrayList<>());
     private static final SecureRandom random = new SecureRandom();
+    private static final BigInteger NUMBER = new BigInteger("10293847561122334455987654321055667788991357924680246801357991827364501029384756");
 
     public static void main(String[] args) throws InterruptedException {
-        BigInteger number = new BigInteger("10293847561122334455987654321055667788991357924680246801357991827364501029384756"); // Велике число
+        int threads = 6;
+        executor = Executors.newFixedThreadPool(threads);
+        System.out.println("Починаємо повну факторизацію: " + NUMBER);
+        System.out.println("Threads: " + threads);
+        start();
 
-        System.out.println("Починаємо повну факторизацію: " + number);
+        primeFactors = Collections.synchronizedList(new ArrayList<>());
+        executor = Executors.newFixedThreadPool(1);
+        System.out.println("Threads: " + 1);
+        start();
+    }
+
+    private static void start() throws InterruptedException{
         long startTime = System.currentTimeMillis();
 
-        factorize(number);
+        factorize(NUMBER);
 
         // Чекаємо завершення всіх задач
         executor.shutdown();
         if (executor.awaitTermination(1, TimeUnit.MINUTES)) {
             Collections.sort(primeFactors);
-            System.out.println("\nПрості множники: " + primeFactors);
-            System.out.println("Час виконання: " + (System.currentTimeMillis() - startTime) + " мс");
+            System.out.println("Прості множники: " + primeFactors);
+            System.out.println("Час виконання: " + (System.currentTimeMillis() - startTime) + " мс\n");
         }
     }
+
 
     public static void factorize(BigInteger n) {
         if (n.equals(BigInteger.ONE)) return;
