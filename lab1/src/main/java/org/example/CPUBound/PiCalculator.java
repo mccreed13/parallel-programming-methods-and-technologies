@@ -1,71 +1,57 @@
 package org.example.CPUBound;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiPredicate;
+import java.util.concurrent.*;
 
 public class PiCalculator {
-    public static int insidePointsGlobal = 0;
-    private final static SecureRandom random = new SecureRandom();
-
-    final static int TOTAL_POINTS = 1_000_000_000;
     private static final List<Integer> THREADS = List.of(1,6,12);
+    private static final long totalIterations = 1_000_000_000L;
 
-    public static void main(String[] args) {
-        for(int threads: THREADS) {
+
+    public static void main(String[] args) throws InterruptedException, ExecutionException {
+        System.out.println("Обчислення " + totalIterations + " точок");
+        for (int threads : THREADS) {
             long startTime = System.currentTimeMillis();
-            System.out.println(PiCalculator.calculate(TOTAL_POINTS, threads));
-            System.out.println("Threads: " + threads);
+            double pi = calculate(threads);
+            System.out.println("Результат ПІ: " + pi);
             System.out.println("Час виконання: " + (System.currentTimeMillis() - startTime) + " мс");
         }
     }
 
-    public static double calculate(int totalPoints, int numberOfThreads) {
-        int totalPointsForThread = totalPoints / numberOfThreads;
-        System.out.println("Total points for thread: " + totalPointsForThread);
-        List<Thread> threads = new ArrayList<>();
-        for (int i = 0; i < numberOfThreads; i++) {
-            Thread t = new Thread(new Runner(totalPointsForThread));
-            threads.add(t);
+    private static double calculate(int numThreads) throws ExecutionException, InterruptedException {
+        long iterationsPerThread = PiCalculator.totalIterations / numThreads;
+
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        List<Future<Long>> results = new ArrayList<>();
+
+        System.out.println("Запуск обчислень на " + numThreads + " потоках...");
+
+        // Розподіляємо роботу між потоками
+        for (int i = 0; i < numThreads; i++) {
+            results.add(executor.submit(() -> {
+                long count = 0;
+                ThreadLocalRandom random = ThreadLocalRandom.current();
+
+                for (long j = 0; j < iterationsPerThread; j++) {
+                    double x = random.nextDouble();
+                    double y = random.nextDouble();
+                    // Перевіряємо, чи потрапила точка в чверть кола (x^2 + y^2 <= 1)
+                    if (x * x + y * y <= 1) {
+                        count++;
+                    }
+                }
+                return count;
+            }));
         }
-        threads.forEach(Thread::start);
-        try {
-            for (Thread thread : threads) {
-                thread.join();
-            }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+
+        long totalInCircle = 0;
+        for (Future<Long> res : results) {
+            totalInCircle += res.get();
         }
+        executor.shutdown();
 
-        return 4.0 * insidePointsGlobal / totalPoints;
+        return  4.0 * totalInCircle / (iterationsPerThread * numThreads);
     }
 
-    synchronized static void addInsidePoints(int points) {
-        insidePointsGlobal += points;
-    }
-
-    public static int getInsidePoints(int totalPoints) {
-        BiPredicate<Double, Double> isInCircle = (x, y) -> (x * x + y * y) <= 1;
-        int insidePoints = 0;
-        for (int i = 0; i < totalPoints; i++) {
-            if (isInCircle.test(random.nextDouble(), random.nextDouble())) {
-                insidePoints++;
-            }
-        }
-        return insidePoints;
-    }
-}
-
-class Runner implements Runnable {
-    int totalPoints;
-
-    public Runner(int totalPoints) {
-        this.totalPoints = totalPoints;
-    }
-
-    @Override
-    public void run() {
-        PiCalculator.addInsidePoints(PiCalculator.getInsidePoints(totalPoints));
-    }
 }
