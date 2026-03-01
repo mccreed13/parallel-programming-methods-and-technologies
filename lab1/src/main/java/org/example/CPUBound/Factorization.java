@@ -12,19 +12,17 @@ public class Factorization {
     private static ExecutorService executor = Executors.newFixedThreadPool(12);
     private static List<BigInteger> primeFactors = Collections.synchronizedList(new ArrayList<>());
     private static final SecureRandom random = new SecureRandom();
+    private static final List<Integer> THREADS = List.of(1,6,12);
     private static final BigInteger NUMBER = new BigInteger("10293847561122334455987654321055667788991357924680246801357991827364501029384756");
 
     public static void main(String[] args) throws InterruptedException {
-        int threads = 6;
-        executor = Executors.newFixedThreadPool(threads);
-        System.out.println("Починаємо повну факторизацію: " + NUMBER);
-        System.out.println("Threads: " + threads);
-        start();
-
-        primeFactors = Collections.synchronizedList(new ArrayList<>());
-        executor = Executors.newFixedThreadPool(1);
-        System.out.println("Threads: " + 1);
-        start();
+        for(int threads : THREADS) {
+            executor = Executors.newFixedThreadPool(threads);
+            primeFactors = Collections.synchronizedList(new ArrayList<>());
+            System.out.println("Починаємо повну факторизацію: " + NUMBER);
+            System.out.println("Threads: " + threads);
+            start();
+        }
     }
 
     private static void start() throws InterruptedException{
