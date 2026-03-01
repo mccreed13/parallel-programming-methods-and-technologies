@@ -14,6 +14,7 @@ public class Factorization {
     private static final SecureRandom random = new SecureRandom();
     private static final List<Integer> THREADS = List.of(1,6,12);
     private static final BigInteger NUMBER = new BigInteger("10293847561122334455987654321055667788991357924680246801357991827364501029384756");
+    private static Integer currThread;
 
     public static void main(String[] args) throws InterruptedException {
         for(int threads : THREADS) {
@@ -21,6 +22,7 @@ public class Factorization {
             primeFactors = Collections.synchronizedList(new ArrayList<>());
             System.out.println("Починаємо повну факторизацію: " + NUMBER);
             System.out.println("Threads: " + threads);
+            currThread = threads;
             start();
         }
     }
@@ -61,7 +63,7 @@ public class Factorization {
     }
 
     private static BigInteger findFactorParallel(BigInteger n) throws InterruptedException, ExecutionException {
-        int threads = Runtime.getRuntime().availableProcessors();
+        int threads = currThread;
         CompletionService<BigInteger> service = new ExecutorCompletionService<>(executor);
 
         // Використовуємо AtomicBoolean для сигналізації іншим потокам про успіх
