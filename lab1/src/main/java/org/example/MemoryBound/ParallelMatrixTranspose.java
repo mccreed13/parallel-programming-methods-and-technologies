@@ -45,7 +45,6 @@ public class ParallelMatrixTranspose {
         executor.shutdown();
         executor.awaitTermination(1, TimeUnit.MINUTES);
 
-        //Перевірка
          assert result[SIZE] == MATRIX[1];
     }
 }

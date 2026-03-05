@@ -27,7 +27,6 @@ public class PiCalculator {
 
         System.out.println("Запуск обчислень на " + numThreads + " потоках...");
 
-        // Розподіляємо роботу між потоками
         for (int i = 0; i < numThreads; i++) {
             results.add(executor.submit(() -> {
                 long count = 0;
@@ -36,7 +35,6 @@ public class PiCalculator {
                 for (long j = 0; j < iterationsPerThread; j++) {
                     double x = random.nextDouble();
                     double y = random.nextDouble();
-                    // Перевіряємо, чи потрапила точка в чверть кола (x^2 + y^2 <= 1)
                     if (x * x + y * y <= 1) {
                         count++;
                     }

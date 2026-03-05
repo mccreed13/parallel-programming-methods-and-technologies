@@ -32,7 +32,6 @@ public class Factorization {
 
         factorize(NUMBER);
 
-        // Чекаємо завершення всіх задач
         executor.shutdown();
         if (executor.awaitTermination(1, TimeUnit.MINUTES)) {
             Collections.sort(primeFactors);
@@ -66,7 +65,6 @@ public class Factorization {
         int threads = currThread;
         CompletionService<BigInteger> service = new ExecutorCompletionService<>(executor);
 
-        // Використовуємо AtomicBoolean для сигналізації іншим потокам про успіх
         AtomicBoolean found = new AtomicBoolean(false);
 
         for (int i = 0; i < threads; i++) {
