@@ -12,8 +12,8 @@ public class PipelineProcessor {
                     // Етап 1: Мапінг у об'єкт та Конвертація
                     .map(p -> {
                         double val = Double.parseDouble(p[1].replace(",", "."));
-                        if (p[2].equals("USD")) val *= 38;
-                        else if (p[2].equals("EUR")) val *= 40;
+                        if (p[2].equals("USD")) val *= 43;
+                        else if (p[2].equals("EUR")) val *= 50;
                         return new Object[]{p[0], val}; // [userId, amountUAH]
                     })
                     // Етап 2: Розрахунок кешбеку

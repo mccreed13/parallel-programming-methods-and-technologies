@@ -2,62 +2,84 @@ package org.example.transactions;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.DoubleAdder;
 
 public class ProducerConsumerProcessor {
-    private static final String POISON_PILL = "STOP"; // Сигнал зупинки
-    private static final BlockingQueue<String> queue = new ArrayBlockingQueue<>(1000);
+    private static final int QUEUE_CAPACITY = 5000;
+    private static final int CONSUMER_THREADS = Runtime.getRuntime().availableProcessors();
+    private static final String POISON_PILL = "EOF";
 
-    public static double run(String file) throws Exception {
-        ExecutorService executor = Executors.newFixedThreadPool(4);
+    private static final DoubleAdder finalTotalAmount = new DoubleAdder();
 
-        // Producer: Читає файл
-        new Thread(() -> {
-            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+    public static double run(String filePath) throws Exception {
+        BlockingQueue<String> queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
+        ExecutorService executor = Executors.newFixedThreadPool(CONSUMER_THREADS);
+
+        Thread producer = new Thread(() -> {
+            try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
                 String line;
-                while ((line = br.readLine()) != null) queue.put(line);
-                queue.put(POISON_PILL); // Сигналимо про кінець
-            } catch (Exception e) { e.printStackTrace(); }
-        }).start();
-
-        // Consumers: Обробляють дані
-        Callable<Double> consumer = () -> {
-            double localTotal = 0;
-            while (true) {
-                String line = queue.take();
-                if (line.equals(POISON_PILL)) {
-                    queue.put(POISON_PILL); // Повертаємо пігулку іншим
-                    break;
+                while ((line = br.readLine()) != null) {
+                    queue.put(line);
                 }
-                localTotal += processLine(line);
+                for (int i = 0; i < CONSUMER_THREADS; i++) {
+                    queue.put(POISON_PILL);
+                }
+            } catch (IOException | InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
-            return localTotal;
-        };
+        });
 
-        List<Future<Double>> results = new ArrayList<>();
-        for (int i = 0; i < 3; i++) results.add(executor.submit(consumer));
+        for (int i = 0; i < CONSUMER_THREADS; i++) {
+            executor.execute(() -> {
+                try {
+                    while (true) {
+                        String line = queue.take(); // Блокується, якщо черга порожня
+                        if (line.equals(POISON_PILL)) break;
 
-        double finalTotal = 0;
-        for (Future<Double> f : results) finalTotal += f.get();
+                        double processedAmount = processTransaction(line);
+                        finalTotalAmount.add(processedAmount);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+        }
+
+        producer.start();
+        producer.join();
+
         executor.shutdown();
-        return finalTotal;
+        executor.awaitTermination(1, TimeUnit.MINUTES);
+
+        return finalTotalAmount.sum();
     }
 
-    private static double processLine(String line) {
-        String[] parts = line.split(",");
-        int userId = Integer.parseInt(parts[0]);
-        double amount = Double.parseDouble(parts[1].replace(",", "."));
-        String currency = parts[2];
+    private static double processTransaction(String line) {
+        try {
+            String[] p = line.split(",");
+            int userId = Integer.parseInt(p[0]);
+            double amount = Double.parseDouble(p[1].replace(",", "."));
+            String currency = p[2];
 
-        // 1. Конвертація (спрощено)
-        if (currency.equals("USD")) amount *= 44;
-        if (currency.equals("EUR")) amount *= 50;
+            // Етап Конвертації (Валюта -> UAH)
+            switch (currency) {
+                case "USD" -> amount *= 43;
+                case "EUR" -> amount *= 50;
+                default -> {
+                } // UAH залишається як є
+            }
 
-        // 2. Повернення коштів (Cashback)
-        if (userId > 1000) amount *= 0.8; // -20%
+            // Етап Кешбеку: якщо ID > 1000, повертаємо 20% (тобто залишається 80% суми)
+            if (userId > 1000) {
+                amount *= 0.8;
+            }
 
-        return amount;
+            return amount;
+        } catch (Exception e) {
+            return 0; // Ігноруємо биті рядки
+        }
     }
+
 }
