@@ -35,7 +35,7 @@ public class ProducerConsumerProcessor {
             executor.execute(() -> {
                 try {
                     while (true) {
-                        String line = queue.take(); // Блокується, якщо черга порожня
+                        String line = queue.take();
                         if (line.equals(POISON_PILL)) break;
 
                         double processedAmount = processTransaction(line);
@@ -49,6 +49,7 @@ public class ProducerConsumerProcessor {
 
         producer.start();
         producer.join();
+
 
         executor.shutdown();
         executor.awaitTermination(1, TimeUnit.MINUTES);
